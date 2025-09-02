@@ -20,7 +20,40 @@ from typing import Optional, Dict, Any, Tuple
 
 import requests
 
-logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
+# 日志设置：同时输出到控制台和本地文件（带日志轮转）
+LOG_DIR = os.getenv("LOG_DIR", os.path.join(os.path.dirname(__file__), "logs"))
+LOG_FILE = os.getenv("LOG_FILE", "and_rain.log")
+LOG_PATH = os.path.join(LOG_DIR, LOG_FILE)
+LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO").upper()
+
+# 确保目录存在
+try:
+    os.makedirs(LOG_DIR, exist_ok=True)
+except Exception:
+    # 无法创建目录时回退到当前工作目录
+    LOG_DIR = "."
+    LOG_PATH = os.path.join(LOG_DIR, LOG_FILE)
+
+logger = logging.getLogger()
+logger.setLevel(getattr(logging, LOG_LEVEL, logging.INFO))
+formatter = logging.Formatter("%(asctime)s %(levelname)s %(message)s")
+
+# 控制台 handler
+ch = logging.StreamHandler()
+ch.setFormatter(formatter)
+
+# 文件 handler（带轮转，单个文件 5MB，保留 3 个备份），使用 utf-8 编码
+from logging.handlers import RotatingFileHandler
+fh = RotatingFileHandler(LOG_PATH, maxBytes=5 * 1024 * 1024, backupCount=3, encoding="utf-8")
+fh.setFormatter(formatter)
+
+# 避免重复添加相同的 handler（例如脚本被多次导入或重复运行）
+existing_file_paths = {
+    os.path.abspath(getattr(h, "baseFilename")) for h in logger.handlers if hasattr(h, "baseFilename")
+}
+if os.path.abspath(LOG_PATH) not in existing_file_paths:
+    logger.addHandler(ch)
+    logger.addHandler(fh)
 
 # 默认配置（会被环境变量覆盖）
 DEFAULT_API_KEY = "xxxxx"

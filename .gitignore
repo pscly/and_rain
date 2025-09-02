@@ -225,3 +225,4 @@ sync_log.txt
 工作报告/all_excel/sync_log.txt
 
 *.log
+logs/*
